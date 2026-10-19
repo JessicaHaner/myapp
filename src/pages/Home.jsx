@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Greetings from './Greetings';
 import UserCard from '../UserCard';
 
@@ -31,9 +32,21 @@ const team = [
 ];
 
 function Home() {
+  const [visitorName,setVisitorName] = useState('');
+
   return (
     <>
-      <Greetings nome={visitorName} />
+      <div className="name-form">
+        <label htmlFor="visitor-name">Como podemos chamar você?</label>
+        <input
+          type="text"
+          id="visitor-name"
+          value={visitorName}
+          onChange={(event) => setVisitorName(event.target.value)}
+          placeholder="Digite seu nome"
+        />
+      </div>
+      <Greetings nome={visitorName || 'Visitante'} />
 
       <section id="equipe">
         <div className="section-heading">
