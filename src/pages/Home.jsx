@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Greetings from './Greetings';
 import UserCard from '../UserCard';
 
-const visitorName = window.prompt('Qual seu nome?') || 'Visitante';
+
 const team = [
   {
     id: 1,
