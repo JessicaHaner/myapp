@@ -1,42 +1,70 @@
+import { useEffect, useState } from 'react';
 import './Contact.css';
 
 const initialForm = {
-    cep: '',
-    street: '',
-    neighborhood: '',
-    state: '',
-    city: '',
-    number: '',
-    message: ''
-}
+  cep: '',
+  street: '',
+  neighborhood: '',
+  state: '',
+  city: '',
+  number: '',
+  message: ''
+};
+
 export default function Contact() {
-    const [form, setForm] = useState(initialForm);
-    const [status, setStatus] = useState({type: '', message: ''});
+  const [form, setForm] = useState(initialForm);
+  const [status, setStatus] = useState({ type: '', message: '' });
+  const [loadingCep, setLoadingCep] = useState(false);
+  const [states, setStates] = useState([]);
 
-    async function searchCep() {
-        const cleanCep = form.cep.replace(/\D/g, '');
-        if (cleanCep.length !== 8) {
-            setStatus({type: 'error', message: 'Digite um CEP válido'});
-        }
-        try {
-            const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-            if (!response.ok) throw new Error('Falha na busca do CEP');
-            const address = await response.json();
-            if (address.erro) throw new Error('CEP não encontrado');
-            setForm(current => ({
-                ...current, 
-                cep: cleanCep || '',
-                street: address.logradouro || '',
-                neighborhood: address.bairro || '',
-                state: address.uf || '',
-                city: address.localidade || ''
-            }));
-            setStatus({type: 'success', message: 'CEP encontrado com sucesso!'});
-        } catch (error) {
-            setStatus({type: 'error', message: error.message});
-        }
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
 
+  async function searchCep() {
+    const cleanCep = form.cep.replace(/\D/g, '');
+
+    if (cleanCep.length !== 8) {
+      setStatus({ type: 'error', message: 'Digite um CEP válido' });
+      return;
     }
+
+    setLoadingCep(true);
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      if (!response.ok) throw new Error('Falha na busca do CEP');
+
+      const address = await response.json();
+      if (address.erro) throw new Error('CEP não encontrado');
+
+      setForm((current) => ({
+        ...current,
+        cep: cleanCep || '',
+        street: address.logradouro || '',
+        neighborhood: address.bairro || '',
+        state: address.uf || '',
+        city: address.localidade || ''
+      }));
+
+      setStatus({ type: 'success', message: 'CEP encontrado com sucesso!' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.message });
+    } finally {
+      setLoadingCep(false);
+    }
+  }
+
+  useEffect(() => {
+    fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome').then((response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
+    })
+    .then(setStates)
+    .catch(() => setStatus({ type: 'error', message: 'Falha ao carregar estados' }))
+
+  }, []);
 
     return (
         <section className="contact-page">
@@ -51,18 +79,30 @@ export default function Contact() {
                             <div className="cep-field">
                                 <input 
                                     name="cep" 
+                                    value={form.cep}
+                                    //onChange={(e) => (setForm((current) => ({current, cep: event.target.value})))}
+                                    onChange={handleChange}
                                     inputMode="numeric" 
                                     placeholder="00000-000" 
                                 />
-                                <button type="button" onClick={searchCEP}>
-                                    Buscar
+                                <button type="button" onClick={searchCep} disabled={loadingCep}>
+
+                                    {loadingCep ? 'Buscando...' : 'Buscar'}
                                 </button>
                             </div>
                         </label>
                         <label>Estado
                             <select 
                                 name="state" 
+                                value={form.state}
+                                onChange={handleChange}
                             >
+                                <option value="">Selecione um estado</option>
+                                {states.map((state) => (
+                                    <option key={state.id} value={state.id}>
+                                        {state.nome}
+                                    </option>
+                                ))}
                             </select>
                         </label>
                         <label>Cidade
@@ -75,6 +115,8 @@ export default function Contact() {
                             <input 
                                 name="street" 
                                 placeholder="Nome da rua" 
+                                value={form.street}
+                                onChange={handleChange}
                             />
                         </label>
                         <label>Número
